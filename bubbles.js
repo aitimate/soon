@@ -106,8 +106,6 @@ const data = [
         const zoomer = svg.select('#zoomer');
         let node = zoomer.append("g").selectAll('g');
         let windowWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-        console.log(windowWidth)
-        console.log(graphContainer.offsetWidth,graphContainer.offsetHeight)
         const simulation = d3.forceSimulation()
             .force("x1", d3.forceX(-windowWidth/2).strength(0.03))
             .force("x2", d3.forceX(0).strength(0.05))
