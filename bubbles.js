@@ -10,7 +10,7 @@ graphContainerSection.innerHTML = `
             </g>
         </svg>
     </template>
-    <div id="graph-container" style="height: 650px;">
+    <div id="graph-container" style="height: 650px;background: #232055">
         <svg id="graph" xmlns="http://www.w3.org/2000/svg" style="width: 100%;height: 100%" viewBox="100 0 100 650">
             <g id="mover" transform="translate(25, 0)">
                 <g id="zoomer">
