@@ -11,7 +11,6 @@ graphContainerSection.innerHTML = `
         </svg>
     </template>
     <div id="graph-container" style="height: 650px;">
-
         <svg id="graph" xmlns="http://www.w3.org/2000/svg" style="width: 100%;height: 100%" viewBox="100 0 100 650">
             <g id="mover" transform="translate(25, 0)">
                 <g id="zoomer">
@@ -21,7 +20,6 @@ graphContainerSection.innerHTML = `
     </div>
 `;
 // DOM
-const graphContainer = document.querySelector('#graph-container');
 const graph = document.querySelector('#graph');
 // init data
 const data = [
@@ -69,10 +67,7 @@ const data = [
         `inset 0 0 60px #abddf8, inset 10px 0 46px #56a2d3, inset 80px 0 80px #2e5fff, inset -20px -60px 100px #ffffff, inset 0 0 1px #fff, 0 0 6px #F8F8FFFF`,
         `inset 0 0 60px #b6baff, inset 10px 0 46px #b9ddf3, inset 80px 0 80px #006e80, inset -20px -60px 100px #ffffff, inset 0 0 1px #fff, 0 0 6px #F8F8FFFF`,
     ]
-    const panel = {
-        nodes: [...dataMap.keys()].map(k => ({id: k})),
-        links: []
-    }
+    const nodes = [...dataMap.keys()].map(k => ({id: k}))
     const d3Bubbles = createD3Bubbles({
         svgElement: graph,
         clickCallback: (event, node) => {
@@ -89,27 +84,24 @@ const data = [
                     let newNode = {
                         id: matches[i], x: newX, y: newY
                     }
-                    panel.nodes.push(newNode);
-                    panel.links.push({
-                        source: node, target: newNode.id
-                    });
+                    nodes.push(newNode);
                 }
-                d3Bubbles.update(panel);
+                d3Bubbles.update(nodes);
             }
         }
     });
     // initialize
-    d3Bubbles.update(panel)
+    d3Bubbles.update(nodes)
 
     function createD3Bubbles({svgElement, clickCallback}) {
         const svg = d3.select(svgElement);
         const zoomer = svg.select('#zoomer');
         let node = zoomer.append("g").selectAll('g');
-        let windowWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+        let width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
         const simulation = d3.forceSimulation()
-            .force("x1", d3.forceX(-windowWidth/2).strength(0.03))
+            .force("x1", d3.forceX(-width/2).strength(0.03))
             .force("x2", d3.forceX(0).strength(0.05))
-            .force("x3", d3.forceX(windowWidth/2).strength(0.03))
+            .force("x3", d3.forceX(width/2).strength(0.03))
             .force("y", d3.forceY(325).strength(0.2))
             .force("repulsion", d3.forceManyBody().strength(-900))
             .force("collide", d3.forceCollide().radius(d => d.width * 30))
@@ -141,12 +133,10 @@ const data = [
                 .on("end", dragended);
         }
         return Object.assign(svg.node(), {
-            update({nodes, links}) {
+            update(nodes) {
                 const oldNodes = new Map(node.data().map(d => [d.id, d]));
                 nodes = nodes.map(d => Object.assign({}, oldNodes.get(d.id) || d));
-                links = links.map(d => Object.assign({}, d));
                 simulation.nodes(nodes);
-                simulation.force("link").links(links);
                 simulation.alpha(0.1).alphaDecay(0.02).restart();
                 node = node
                     .data(nodes, d => d.id)
