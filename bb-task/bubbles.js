@@ -11,8 +11,8 @@ graphContainerSection.innerHTML = `
         </svg>
     </template>
     <div id="graph-container" style="height: 650px;background: #232055">
-        <svg id="graph" xmlns="http://www.w3.org/2000/svg" style="width: 100%;height: 100%">
-            <g id="mover">
+        <svg id="graph" xmlns="http://www.w3.org/2000/svg" style="width: 100%;height: 100%" viewBox="100 0 100 650">
+            <g id="mover" transform="translate(25, 0)">
                 <g id="zoomer">
                 </g>
             </g>
@@ -23,7 +23,7 @@ graphContainerSection.innerHTML = `
 const graph = document.querySelector('#graph');
 // init data
 const data = [
-    ["高学历", ["学术代表", "博士", "硕士", "名校毕业", "学业优秀"]],
+    ["高学历", ["学术代表", "博士", "硕士", "名校毕业", "学业优秀","学术代表T", "博士T", "硕士T", "名校毕业T", "学业优秀T"]],
     ["理科生", ["计算机科学", "医学", "工程学", "金融", "数学专业"]],
     ["文科生", ["老师", "文艺青年", "教育工作者", "医护"]],
     ["乐观", ["幽默", "笑容可掬", "豁达", "阳光", "爱交际"]],
@@ -60,10 +60,6 @@ const data = [
 ];
 // init d3
 {
-    function id2Length(id) {
-        return id.length < 5 ? 110 : 120
-    }
-
     // 变量
     const dataMap = new Map(data);
     const bubbles = [
@@ -71,19 +67,7 @@ const data = [
         `inset 0 0 60px #abddf8, inset 10px 0 46px #56a2d3, inset 80px 0 80px #2e5fff, inset -20px -60px 100px #ffffff, inset 0 0 1px #fff, 0 0 6px #F8F8FFFF`,
         `inset 0 0 60px #b6baff, inset 10px 0 46px #b9ddf3, inset 80px 0 80px #006e80, inset -20px -60px 100px #ffffff, inset 0 0 1px #fff, 0 0 6px #F8F8FFFF`,
     ]
-    const borders = [
-        {id:"a0",fx:0,fy:0,r:100},
-        {id:"a1",fx:100,fy:0,r:80},
-        {id:"a2",fx:200,fy:0,r:80},
-        {id:"a3",fx:300,fy:0,r:80},
-        {id:"a4",fx:400,fy:0,r:80},
-        {id:"a5",fx:500,fy:0,r:80},
-        {id:"a6",fx:600,fy:0,r:80},
-        {id:"a7",fx:700,fy:0,r:80},
-        {id:"a8",fx:800,fy:0,r:80},
-    ]
-    const nodes = [...borders,...[...dataMap.keys()].map(k => ({id: k,r:id2Length(k)/2+1}))]
-    let {width, height} = document.querySelector('#graph').getBoundingClientRect()
+    const nodes = [...dataMap.keys()].map(k => ({id: k}))
     const d3Bubbles = createD3Bubbles({
         svgElement: graph,
         clickCallback: (event, node) => {
@@ -98,7 +82,7 @@ const data = [
                     let newX = node.x + distance * Math.cos(angle * i);
                     let newY = node.y + distance * Math.sin(angle * i);
                     let newNode = {
-                        id: matches[i], x: newX, y: newY, r: id2Length(matches[i])/2
+                        id: matches[i], x: newX, y: newY
                     }
                     nodes.push(newNode);
                 }
@@ -113,15 +97,51 @@ const data = [
         const svg = d3.select(svgElement);
         const zoomer = svg.select('#zoomer');
         let node = zoomer.append("g").selectAll('g');
+        let {width, height} = document.querySelector('#graph').getBoundingClientRect()
+        width = width.toFixed(0)
+        height = height.toFixed(0)
         const simulation = d3.forceSimulation()
-            .force("y",d3.forceY(height/4))
-            // .force("center",d3.forceCenter(width/2,height/2))
-            .force("collide", d3.forceCollide().radius(d =>d.r+5))
-            .force("charge", d3.forceManyBody().strength(100))
-        .on("tick", () => {
-            node.attr('transform', d => `translate(${d.x},${d.y})`);
-        });
+            .force("x1", d3.forceX(-width/2).strength(0.03))
+            .force("x2", d3.forceX(0).strength(0.05))
+            .force("x3", d3.forceX(width/2).strength(0.03))
+            .force("y", d3.forceY(325).strength(0.2))
+            // .force("y", d3.forceY().y(d => Math.max(0, Math.min(500, d.y))).strength(0.2))
+            .force("repulsion", d3.forceManyBody().strength(-900))
+            .force("collide", d3.forceCollide().radius(d => d.width * 30))
+            .force("link", d3.forceLink().id(d => d.id).distance(10).strength(0.01))
+            .on("tick", () => {
+                node.attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+        const drag = simulation => {
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
 
+            function dragged(event, d) {
+                console.log(`id=${d.id} ${d.fx.toFixed(0)}/${width} ${d.fy.toFixed(0)}/${height}`);
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+
+            return d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended);
+        }
+
+        function id2Length(id) {
+            return id.length < 5 ? 110 : 120
+        }
+
+        console.log()
         return Object.assign(svg.node(), {
             update(nodes) {
                 const oldNodes = new Map(node.data().map(d => [d.id, d]));
@@ -132,60 +152,31 @@ const data = [
                     .data(nodes, d => d.id)
                     .join(enter => {
                         return enter.append(d => {
-                            try {
-                                const node = document.querySelector('#graph-node-template').content.firstElementChild.querySelector('.node').cloneNode(true);
-                                const circle = node.querySelector('foreignObject');
-                                circle.style.width = d.id.length < 5 ? 110 : 120;
-                                circle.style.height = d.id.length < 5 ? 110 : 120;
-                                circle.style.borderRadius = "50%";
-                                circle.style.textAlign = "center";
-                                circle.style.paddingTop = "42%";
-                                circle.style.border = "none";
-                                circle.style.background = "hsla(0, 0%, 80%, 0.15)";
-                                circle.style.boxShadow = "inset 0 0 20px 0 #b29ebb, inset 0 0 1px #fff, 0 0 5px #ae96c0";
-                                circle.style.color = "ghostwhite";
-                                const span = node.querySelector('span');
-                                span.textContent = d.id
-                                circle.setAttribute('transform', 'scale(0.75)');
-                                d3.select(circle)
-                                    .transition()
-                                    .duration(800)
-                                    .attr('transform', 'scale(1)');
-                                return node;
-                            }catch (e) {
-                                console.log(d)
-                            }
+                            const node = document.querySelector('#graph-node-template').content.firstElementChild.querySelector('.node').cloneNode(true);
+                            const circle = node.querySelector('foreignObject');
+                            circle.style.width = id2Length(d.id);
+                            circle.style.height = id2Length(d.id);
+                            circle.style.borderRadius = "50%";
+                            circle.style.textAlign = "center";
+                            circle.style.paddingTop = "42%";
+                            circle.style.border = "none";
+                            circle.style.background = "hsla(0, 0%, 80%, 0.15)";
+                            circle.style.boxShadow = "inset 0 0 20px 0 #b29ebb, inset 0 0 1px #fff, 0 0 5px #ae96c0";
+                            circle.style.color = "ghostwhite";
+                            const span = node.querySelector('span');
+                            span.textContent = d.id
+                            circle.setAttribute('transform', 'scale(0.75)');
+                            d3.select(circle)
+                                .transition()
+                                .duration(800)
+                                .attr('transform', 'scale(1)');
+                            return node;
                         })
                     })
                     .on('click', clickCallback)
                     .call(drag(simulation));
             }
         });
-    }
-
-    function drag(simulation) {
-        function dragstarted(event, d) {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-        }
-
-        function dragged(event, d) {
-            console.log(`id=${d.id} fx=${d.fx.toFixed(0)}/${width.toFixed(0)} fy=${d.fy.toFixed(0)}/${height.toFixed(0)}`);
-            d.fx = event.x;
-            d.fy = event.y;
-        }
-
-        function dragended(event, d) {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-        }
-
-        return d3.drag()
-            .on("start", dragstarted)
-            .on("drag", dragged)
-            .on("end", dragended);
     }
 }
 // listen graph move
