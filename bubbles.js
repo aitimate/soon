@@ -10,7 +10,7 @@ graphContainerSection.innerHTML = `
             </g>
         </svg>
     </template>
-    <div id="graph-container" style="height: 650px;background: #232055">
+    <div id="graph-container" style="height: 400px;background: #232055">
         <svg id="graph" xmlns="http://www.w3.org/2000/svg" style="width: 100%;height: 100%">
             <g id="mover">
                 <g id="zoomer">
@@ -61,6 +61,9 @@ const data = [
 // init d3
 {
     function id2Length(id) {
+        if (id.startsWith("b-")){
+            return 100
+        }
         return id.length < 5 ? 110 : 120
     }
 
@@ -71,19 +74,17 @@ const data = [
         `inset 0 0 60px #abddf8, inset 10px 0 46px #56a2d3, inset 80px 0 80px #2e5fff, inset -20px -60px 100px #ffffff, inset 0 0 1px #fff, 0 0 6px #F8F8FFFF`,
         `inset 0 0 60px #b6baff, inset 10px 0 46px #b9ddf3, inset 80px 0 80px #006e80, inset -20px -60px 100px #ffffff, inset 0 0 1px #fff, 0 0 6px #F8F8FFFF`,
     ]
-    const borders = [
-        {id:"a0",fx:0,fy:0,r:100},
-        {id:"a1",fx:100,fy:0,r:80},
-        {id:"a2",fx:200,fy:0,r:80},
-        {id:"a3",fx:300,fy:0,r:80},
-        {id:"a4",fx:400,fy:0,r:80},
-        {id:"a5",fx:500,fy:0,r:80},
-        {id:"a6",fx:600,fy:0,r:80},
-        {id:"a7",fx:700,fy:0,r:80},
-        {id:"a8",fx:800,fy:0,r:80},
-    ]
-    const nodes = [...borders,...[...dataMap.keys()].map(k => ({id: k,r:id2Length(k)/2+1}))]
-    let {width, height} = document.querySelector('#graph').getBoundingClientRect()
+    const {width, height} = document.querySelector('#graph').getBoundingClientRect()
+    const bts = Array.from({length:Math.ceil(width/100)}).map((_,i)=>({id:`b-t${i}`,fx:i*100,fy:-90,r:100}))
+    const bbs = Array.from({length:Math.ceil(width/100)}).map((_,i)=>({id:`b-b${i}`,fx:i*100,fy:height-10,r:100}))
+    const nodes = [...dataMap.keys()].map((k, i, arr) => {
+        const rows = 4
+        const cols = Math.ceil(arr.length / rows)
+        const row = Math.floor(i / cols)
+        const col = i % cols
+        return {id: k, x: 100 + col * 145, y: 100 + row * 145,r:id2Length(k)/2+1}
+    })
+    nodes.push(...bts,...bbs)
     const d3Bubbles = createD3Bubbles({
         svgElement: graph,
         clickCallback: (event, node) => {
@@ -116,8 +117,8 @@ const data = [
         const simulation = d3.forceSimulation()
             .force("y",d3.forceY(height/4))
             // .force("center",d3.forceCenter(width/2,height/2))
-            .force("collide", d3.forceCollide().radius(d =>d.r+5))
-            .force("charge", d3.forceManyBody().strength(100))
+            .force("collide", d3.forceCollide().radius(d =>d.r+10))
+            .force("charge", d3.forceManyBody().strength(10))
         .on("tick", () => {
             node.attr('transform', d => `translate(${d.x},${d.y})`);
         });
@@ -132,29 +133,30 @@ const data = [
                     .data(nodes, d => d.id)
                     .join(enter => {
                         return enter.append(d => {
-                            try {
-                                const node = document.querySelector('#graph-node-template').content.firstElementChild.querySelector('.node').cloneNode(true);
-                                const circle = node.querySelector('foreignObject');
-                                circle.style.width = d.id.length < 5 ? 110 : 120;
-                                circle.style.height = d.id.length < 5 ? 110 : 120;
-                                circle.style.borderRadius = "50%";
-                                circle.style.textAlign = "center";
-                                circle.style.paddingTop = "42%";
-                                circle.style.border = "none";
-                                circle.style.background = "hsla(0, 0%, 80%, 0.15)";
-                                circle.style.boxShadow = "inset 0 0 20px 0 #b29ebb, inset 0 0 1px #fff, 0 0 5px #ae96c0";
-                                circle.style.color = "ghostwhite";
-                                const span = node.querySelector('span');
-                                span.textContent = d.id
-                                circle.setAttribute('transform', 'scale(0.75)');
-                                d3.select(circle)
-                                    .transition()
-                                    .duration(800)
-                                    .attr('transform', 'scale(1)');
-                                return node;
-                            }catch (e) {
-                                console.log(d)
+                            const node = document.querySelector('#graph-node-template').content.firstElementChild.querySelector('.node').cloneNode(true);
+                            const circle = node.querySelector('foreignObject');
+                            circle.style.width = id2Length(d.id);
+                            circle.style.height = id2Length(d.id);
+                            circle.style.background = "hsla(0, 0%, 80%, 0.15)";
+                            if (d.id.startsWith("b-")){
+                               return node
                             }
+
+                            circle.style.borderRadius = "50%";
+                            circle.style.textAlign = "center";
+                            circle.style.paddingTop = "42%";
+                            circle.style.border = "none";
+                            circle.style.background = "hsla(0, 0%, 80%, 0.15)";
+                            circle.style.boxShadow = "inset 0 0 20px 0 #b29ebb, inset 0 0 1px #fff, 0 0 5px #ae96c0";
+                            circle.style.color = "ghostwhite";
+                            const span = node.querySelector('span');
+                            span.textContent = d.id
+                            circle.setAttribute('transform', 'scale(0.75)');
+                            d3.select(circle)
+                                .transition()
+                                .duration(800)
+                                .attr('transform', 'scale(1)');
+                            return node;
                         })
                     })
                     .on('click', clickCallback)
@@ -200,7 +202,7 @@ const data = [
         const deltaX = clientX - startPoint.x;
         const deltaY = clientY - startPoint.y;
         newPoint = {
-            x: lastPoint.x + deltaX, y: lastPoint.y + deltaY,
+            x: lastPoint.x + deltaX, y: lastPoint.y ,
         };
         mover.style.transform = `translate(${newPoint.x}px, ${newPoint.y}px)`;
     }
