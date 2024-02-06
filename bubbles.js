@@ -4,13 +4,16 @@ graphContainerSection.innerHTML = `
     <template id="graph-node-template">
         <svg xmlns="http://www.w3.org/2000/svg">
             <g class="node">
-                <foreignObject>
+                <foreignObject class="test">
                     <span></span>
                 </foreignObject>
             </g>
         </svg>
     </template>
-    <div id="graph-container" style="height: 400px;background: #232055">
+    <div id="stars1"></div>
+    <div id="stars2"></div>
+    <div id="stars3"></div>
+    <div id="graph-container" style="height: 600px;background: radial-gradient(ellipse at bottom, #231C38 0%, #161224 100%);">
         <svg id="graph" xmlns="http://www.w3.org/2000/svg" style="width: 100%;height: 100%">
             <g id="mover">
                 <g id="zoomer">
@@ -64,7 +67,7 @@ const data = [
         if (id.startsWith("b-")){
             return 100
         }
-        return id.length < 5 ? 110 : 120
+        return id.length < 5 ? 90 : 100
     }
 
     // 变量
@@ -82,7 +85,7 @@ const data = [
         const cols = Math.ceil(arr.length / rows)
         const row = Math.floor(i / cols)
         const col = i % cols
-        return {id: k, x: 100 + col * 145, y: 100 + row * 145,r:id2Length(k)/2+1}
+        return {id: k, x: 100 + (Math.random()*0.5+0.5)*col * 145, y: 100 + (Math.random()*0.5+0.5)*row * 145,r:id2Length(k)/2+1}
     })
     nodes.push(...bts,...bbs)
     const d3Bubbles = createD3Bubbles({
@@ -117,8 +120,8 @@ const data = [
         const simulation = d3.forceSimulation()
             .force("y",d3.forceY(height/4))
             // .force("center",d3.forceCenter(width/2,height/2))
-            .force("collide", d3.forceCollide().radius(d =>d.r+10))
-            .force("charge", d3.forceManyBody().strength(10))
+            .force("collide", d3.forceCollide().radius(d =>d.r+8))
+            .force("charge", d3.forceManyBody().strength(15))
         .on("tick", () => {
             node.attr('transform', d => `translate(${d.x},${d.y})`);
         });
@@ -137,18 +140,17 @@ const data = [
                             const circle = node.querySelector('foreignObject');
                             circle.style.width = id2Length(d.id);
                             circle.style.height = id2Length(d.id);
-                            circle.style.background = "hsla(0, 0%, 80%, 0.15)";
                             if (d.id.startsWith("b-")){
                                return node
                             }
-
+                            circle.style.fontSize = "0.9rem"
                             circle.style.borderRadius = "50%";
                             circle.style.textAlign = "center";
-                            circle.style.paddingTop = "42%";
+                            circle.style.lineHeight = id2Length(d.id)+"px";
                             circle.style.border = "none";
-                            circle.style.background = "hsla(0, 0%, 80%, 0.15)";
-                            circle.style.boxShadow = "inset 0 0 20px 0 #b29ebb, inset 0 0 1px #fff, 0 0 5px #ae96c0";
-                            circle.style.color = "ghostwhite";
+                            // circle.style.background = "hsla(0, 0%, 80%, 0.15)";
+                            // circle.style.boxShadow = "inset 0 0 20px 0 #b29ebb, inset 0 0 1px #fff, 0 0 5px #ae96c0";
+                            circle.style.color = "#BFC4C9";
                             const span = node.querySelector('span');
                             span.textContent = d.id
                             circle.setAttribute('transform', 'scale(0.75)');
