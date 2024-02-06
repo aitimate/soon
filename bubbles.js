@@ -5,7 +5,7 @@ graphContainerSection.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg">
             <g class="node">
                 <foreignObject class="test">
-                    <span></span>
+                    <span style="user-select: none"></span>
                 </foreignObject>
             </g>
         </svg>
@@ -61,8 +61,9 @@ const data = [
     ["养生达人", ["瑜伽", "中医", "食疗", "气功", "冥想"]],
     ["成熟魅力", ["自信帅气", "身姿纤细", "强壮勇猛", "高个子180+"]]
 ];
-// init d3
+
 {
+    // init d3
     function id2Length(id) {
         if (id.startsWith("b-")) {
             return 100
@@ -78,7 +79,8 @@ const data = [
         `inset 0 0 60px #b6baff, inset 10px 0 46px #b9ddf3, inset 80px 0 80px #006e80, inset -20px -60px 100px #ffffff, inset 0 0 1px #fff, 0 0 6px #F8F8FFFF`,
     ]
     const {width, height} = document.querySelector('#graph').getBoundingClientRect();
-    const borders = [],  n = Math.ceil(width / 100) * 2;
+    const borders = [];
+    let n = Math.ceil(width / 100 * 5 / 3);
     for (let i = 0; i < n; i++) {
         let pt = {
             id: `b-t${i}`,
@@ -86,14 +88,45 @@ const data = [
             fy: -100,
             r: 100
         }
-        borders.push(pt, {...pt, fx: -pt.fx})
+        let pt_ = {
+            id: `b-t${i}-`,
+            fx: -pt.fx,
+            fy: -100,
+            r: 100
+        }
         let pb = {
             id: `b-b${i}`,
-            fx: 50 + i * 100,
+            fx: pt.fx,
             fy: height,
             r: 100
         }
-        borders.push(pb, {...pb, fx: -pb.fx})
+        let pb_ = {
+            id: `b-b${i}-`,
+            fx: -pt.fx,
+            fy: height,
+            r: 100
+        }
+        borders.push(pt, pt_, pb, pb_)
+    }
+    let offsetR = 50 + (n - 1) * 100 * 1.5;
+    let offsetL = -offsetR / 2;
+    n = Math.ceil(height / 100) * 2;
+    for (let i = 0; i < n; i++) {
+        let pr = {
+            id: `b-r${i}`,
+            fx: offsetR,
+            // fy: -100,
+            fy: i * 100,
+            r: 100
+        }
+        let pl = {
+            id: `b-l${i}`,
+            fx: offsetL,
+            // fy: -100,
+            fy: i * 100,
+            r: 100
+        }
+        borders.push(pr, pl)
     }
     const nodes = [...dataMap.keys()].map((k, i, arr) => {
         const rows = 4
@@ -176,7 +209,7 @@ const data = [
                             circle.style.width = id2Length(d.id);
                             circle.style.height = id2Length(d.id);
                             if (d.id.startsWith("b-")) {
-                                circle.style.border = "1px solid red"
+                                circle.style.border = "1px solid red"; // borders
                                 return node
                             }
                             circle.style.fontSize = "0.9rem"
@@ -226,37 +259,64 @@ const data = [
             .on("drag", dragged)
             .on("end", dragended);
     }
-}
-// listen graph move
-{
+
+    // listen graph move
     const mover = document.querySelector('#mover');
     let startPoint = {x: 0, y: 0};
     let newPoint = {x: 0, y: 0};
     let lastPoint = {x: 0, y: 0};
 
+    let xr = offsetL,xl = offsetR+offsetL-100
     function updatePoint(e) {
         const {clientX, clientY} = e;
         const deltaX = clientX - startPoint.x;
-        const deltaY = clientY - startPoint.y;
+        // const deltaY = clientY - startPoint.y;
         newPoint = {
             x: lastPoint.x + deltaX, y: lastPoint.y,
         };
+        if (newPoint.x > xl) {
+            newPoint.x = xl
+        } else if (newPoint.x < xr) {
+            newPoint.x = xr
+        }
+
+
         mover.style.transform = `translate(${newPoint.x}px, ${newPoint.y}px)`;
     }
 
-    function handleMouseDown(e) {
-        const {clientX, clientY} = e;
+    function handleStart(e) {
+        // 兼容触摸事件和鼠标事件
+        var clientX, clientY;
+        if (e.touches) {
+            // 对于触摸事件，使用第一个触点的坐标
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            // 对于鼠标事件，直接使用事件的坐标
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
         startPoint = {
             x: clientX, y: clientY
         }
+        // 对于移动端，监听touchmove事件
         graph.addEventListener('mousemove', updatePoint);
+        graph.addEventListener('touchmove', updatePoint);
     }
 
-    function handleMouseUp(e) {
+    function handleEnd(e) {
         lastPoint = newPoint;
+        // 移除mousemove和touchmove的监听器
         graph.removeEventListener('mousemove', updatePoint);
+        graph.removeEventListener('touchmove', updatePoint);
     }
 
-    graph.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('mouseup', handleMouseUp);
+    // 监听鼠标事件
+    graph.addEventListener('mousedown', handleStart);
+    document.addEventListener('mouseup', handleEnd);
+
+    // 监听触摸事件
+    graph.addEventListener('touchstart', handleStart);
+    document.addEventListener('touchend', handleEnd);
 }
