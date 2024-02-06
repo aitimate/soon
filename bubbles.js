@@ -285,14 +285,11 @@ const data = [
     }
 
     function handleStart(e) {
-        // 兼容触摸事件和鼠标事件
-        var clientX, clientY;
+        let clientX, clientY;
         if (e.touches) {
-            // 对于触摸事件，使用第一个触点的坐标
             clientX = e.touches[0].clientX;
             clientY = e.touches[0].clientY;
         } else {
-            // 对于鼠标事件，直接使用事件的坐标
             clientX = e.clientX;
             clientY = e.clientY;
         }
@@ -300,23 +297,19 @@ const data = [
         startPoint = {
             x: clientX, y: clientY
         }
-        // 对于移动端，监听touchmove事件
         graph.addEventListener('mousemove', updatePoint);
         graph.addEventListener('touchmove', updatePoint);
     }
 
     function handleEnd(e) {
         lastPoint = newPoint;
-        // 移除mousemove和touchmove的监听器
         graph.removeEventListener('mousemove', updatePoint);
         graph.removeEventListener('touchmove', updatePoint);
     }
 
-    // 监听鼠标事件
     graph.addEventListener('mousedown', handleStart);
     document.addEventListener('mouseup', handleEnd);
 
-    // 监听触摸事件
     graph.addEventListener('touchstart', handleStart);
     document.addEventListener('touchend', handleEnd);
 }
