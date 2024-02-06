@@ -78,7 +78,7 @@ const data = [
         `inset 0 0 60px #b6baff, inset 10px 0 46px #b9ddf3, inset 80px 0 80px #006e80, inset -20px -60px 100px #ffffff, inset 0 0 1px #fff, 0 0 6px #F8F8FFFF`,
     ]
     const {width, height} = document.querySelector('#graph').getBoundingClientRect();
-    const bts = [], bbs = [], n = Math.ceil(width / 100) * 2;
+    const borders = [],  n = Math.ceil(width / 100) * 2;
     for (let i = 0; i < n; i++) {
         let pt = {
             id: `b-t${i}`,
@@ -86,14 +86,14 @@ const data = [
             fy: -100,
             r: 100
         }
-        bts.push(pt, {...pt, fx: -pt.fx})
+        borders.push(pt, {...pt, fx: -pt.fx})
         let pb = {
             id: `b-b${i}`,
             fx: 50 + i * 100,
             fy: height,
             r: 100
         }
-        bts.push(pb, {...pb, fx: -pb.fx})
+        borders.push(pb, {...pb, fx: -pb.fx})
     }
     const nodes = [...dataMap.keys()].map((k, i, arr) => {
         const rows = 4
@@ -107,7 +107,7 @@ const data = [
             r: id2Length(k) / 2 + 1
         }
     })
-    nodes.push(...bts, ...bbs)
+    nodes.push(...borders)
     const colored = new Map()
     const d3Bubbles = createD3Bubbles({
         svgElement: graph,
