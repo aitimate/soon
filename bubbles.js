@@ -64,7 +64,7 @@ const data = [
 // init d3
 {
     function id2Length(id) {
-        if (id.startsWith("b-")){
+        if (id.startsWith("b-")) {
             return 100
         }
         return id.length < 5 ? 90 : 100
@@ -77,21 +77,56 @@ const data = [
         `inset 0 0 60px #abddf8, inset 10px 0 46px #56a2d3, inset 80px 0 80px #2e5fff, inset -20px -60px 100px #ffffff, inset 0 0 1px #fff, 0 0 6px #F8F8FFFF`,
         `inset 0 0 60px #b6baff, inset 10px 0 46px #b9ddf3, inset 80px 0 80px #006e80, inset -20px -60px 100px #ffffff, inset 0 0 1px #fff, 0 0 6px #F8F8FFFF`,
     ]
-    const {width, height} = document.querySelector('#graph').getBoundingClientRect()
-    const bts = Array.from({length:Math.ceil(width/100)}).map((_,i)=>({id:`b-t${i}`,fx:i*100,fy:-90,r:100}))
-    const bbs = Array.from({length:Math.ceil(width/100)}).map((_,i)=>({id:`b-b${i}`,fx:i*100,fy:height-10,r:100}))
+    const {width, height} = document.querySelector('#graph').getBoundingClientRect();
+    const bts = [], bbs = [], n = Math.ceil(width / 100) * 2;
+    for (let i = 0; i < n; i++) {
+        let pt = {
+            id: `b-t${i}`,
+            fx: 50 + i * 100,
+            fy: -100,
+            r: 100
+        }
+        bts.push(pt, {...pt, fx: -pt.fx})
+        let pb = {
+            id: `b-b${i}`,
+            fx: 50 + i * 100,
+            fy: height,
+            r: 100
+        }
+        bts.push(pb, {...pb, fx: -pb.fx})
+    }
     const nodes = [...dataMap.keys()].map((k, i, arr) => {
         const rows = 4
         const cols = Math.ceil(arr.length / rows)
         const row = Math.floor(i / cols)
         const col = i % cols
-        return {id: k, x: 100 + (Math.random()*0.5+0.5)*col * 145, y: 100 + (Math.random()*0.5+0.5)*row * 145,r:id2Length(k)/2+1}
+        return {
+            id: k,
+            x: 100 + (Math.random() * 0.5 + 0.5) * col * 145,
+            y: 100 + (Math.random() * 0.5 + 0.5) * row * 145,
+            r: id2Length(k) / 2 + 1
+        }
     })
-    nodes.push(...bts,...bbs)
+    nodes.push(...bts, ...bbs)
+    const colored = new Map()
     const d3Bubbles = createD3Bubbles({
         svgElement: graph,
         clickCallback: (event, node) => {
             const circle = event.target.tagName === "SPAN" ? event.target.parentNode : event.target;
+            if (colored.has(node.id)) {
+                if (colored.get(node.id)) {
+                    circle.style.background = "hsla(0, 0%, 30%, 0.1)";
+                    circle.style.boxShadow = "0 0 6px 0 #4d3779, inset 0 0 12px 0 #514273, inset 0 0 1px #ad8ee7";
+                    colored.set(node.id, false)
+                } else {
+                    circle.style.background = "radial-gradient(circle at 75% 30%, white 5px, aqua 8%, #000041 60%, aqua 100%)";
+                    circle.style.boxShadow = bubbles[Math.floor(Math.random() * (bubbles.length - 1))]
+                    colored.set(node.id, true)
+                }
+                return
+            }
+            colored.set(node.id, true)
+
             circle.style.background = "radial-gradient(circle at 75% 30%, white 5px, aqua 8%, #000041 60%, aqua 100%)";
             circle.style.boxShadow = bubbles[Math.floor(Math.random() * (bubbles.length - 1))]
             const matches = dataMap.get(node.id);
@@ -102,7 +137,7 @@ const data = [
                     let newX = node.x + distance * Math.cos(angle * i);
                     let newY = node.y + distance * Math.sin(angle * i);
                     let newNode = {
-                        id: matches[i], x: newX, y: newY, r: id2Length(matches[i])/2
+                        id: matches[i], x: newX, y: newY, r: id2Length(matches[i]) / 2
                     }
                     nodes.push(newNode);
                 }
@@ -118,14 +153,14 @@ const data = [
         const zoomer = svg.select('#zoomer');
         let node = zoomer.append("g").selectAll('g');
         const simulation = d3.forceSimulation()
-            .force("y",d3.forceY(height/4))
+            .force("x", d3.forceX(width / 2).strength(0.002))
+            .force("y", d3.forceY(height / 2))
             // .force("center",d3.forceCenter(width/2,height/2))
-            .force("collide", d3.forceCollide().radius(d =>d.r+8))
-            .force("charge", d3.forceManyBody().strength(15))
-        .on("tick", () => {
-            node.attr('transform', d => `translate(${d.x},${d.y})`);
-        });
-
+            .force("collide", d3.forceCollide().radius(d => d.r + 8))
+            .force("charge", d3.forceManyBody().strength(30))
+            .on("tick", () => {
+                node.attr('transform', d => `translate(${d.x},${d.y})`);
+            });
         return Object.assign(svg.node(), {
             update(nodes) {
                 const oldNodes = new Map(node.data().map(d => [d.id, d]));
@@ -140,24 +175,24 @@ const data = [
                             const circle = node.querySelector('foreignObject');
                             circle.style.width = id2Length(d.id);
                             circle.style.height = id2Length(d.id);
-                            if (d.id.startsWith("b-")){
-                               return node
+                            if (d.id.startsWith("b-")) {
+                                circle.style.border = "1px solid red"
+                                return node
                             }
                             circle.style.fontSize = "0.9rem"
                             circle.style.borderRadius = "50%";
                             circle.style.textAlign = "center";
-                            circle.style.lineHeight = id2Length(d.id)+"px";
+                            circle.style.lineHeight = id2Length(d.id) + "px";
                             circle.style.border = "none";
-                            // circle.style.background = "hsla(0, 0%, 80%, 0.15)";
-                            // circle.style.boxShadow = "inset 0 0 20px 0 #b29ebb, inset 0 0 1px #fff, 0 0 5px #ae96c0";
+                            circle.style.background = "hsla(0, 0%, 30%, 0.1)";
+                            circle.style.boxShadow = "0 0 6px 0 #4d3779, inset 0 0 12px 0 #514273, inset 0 0 1px #ad8ee7";
                             circle.style.color = "#BFC4C9";
                             const span = node.querySelector('span');
                             span.textContent = d.id
-                            circle.setAttribute('transform', 'scale(0.75)');
                             d3.select(circle)
                                 .transition()
-                                .duration(800)
-                                .attr('transform', 'scale(1)');
+                                .duration(2000000)
+                                .attr('x', d.x + 100);
                             return node;
                         })
                     })
@@ -204,7 +239,7 @@ const data = [
         const deltaX = clientX - startPoint.x;
         const deltaY = clientY - startPoint.y;
         newPoint = {
-            x: lastPoint.x + deltaX, y: lastPoint.y ,
+            x: lastPoint.x + deltaX, y: lastPoint.y,
         };
         mover.style.transform = `translate(${newPoint.x}px, ${newPoint.y}px)`;
     }
