@@ -1,4 +1,4 @@
-const graphContainerSection=document.querySelector(".graph-div"),resizeObserver=new ResizeObserver(h=>{const{width:g,height:r}=h[0].contentRect;graphContainerSection.style.width=`${g*95/100}px`,graphContainerSection.style.height=`${r*9/10}px`,graphContainerSection.innerHTML=`
+const graphContainerSection=document.querySelector(".graph-div"),resizeObserver=new ResizeObserver(h=>{const{width:g,height:r}=h[0].contentRect;graphContainerSection.style.width=`${g*95/100}px`,graphContainerSection.style.height=`${r*92/100}px`,graphContainerSection.innerHTML=`
     <template id="graph-node-template">
         <svg xmlns="http://www.w3.org/2000/svg">
             <g class="node">
@@ -11,7 +11,7 @@ const graphContainerSection=document.querySelector(".graph-div"),resizeObserver=
     <div id="stars1"></div>
     <div id="stars2"></div>
     <div id="stars3"></div>
-    <div id="graph-container" style="width:100%;height:100%;background: radial-gradient(ellipse at bottom, #231C38 0%, #161224 100%);border-radius: ${g*.1}px">
+    <div id="graph-container" style="width:100%;height:100%;background: radial-gradient(ellipse at bottom, #231C38 0%, #161224 100%);border-radius: ${g*5/100}px">
         <svg id="graph" xmlns="http://www.w3.org/2000/svg" style="width: 100%;height: 100%">
             <g id="mover">
                 <g id="zoomer">
