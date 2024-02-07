@@ -64,14 +64,6 @@ const data = [
 
 {
     // init d3
-    function id2Length(id) {
-        if (id.startsWith("b-")) {
-            return 100
-        }
-        return id.length < 5 ? 90 : 100
-    }
-
-    // 变量
     const dataMap = new Map(data);
     const bubbles = [
         `inset 0 0 60px #f298fa, inset 10px 0 46px #56a2d3, inset 80px 0 80px #4529ff, inset -20px -60px 100px #ffffff, inset 0 0 1px #fff, 0 0 6px #F8F8FFFF`,
@@ -79,56 +71,9 @@ const data = [
         `inset 0 0 60px #b6baff, inset 10px 0 46px #b9ddf3, inset 80px 0 80px #006e80, inset -20px -60px 100px #ffffff, inset 0 0 1px #fff, 0 0 6px #F8F8FFFF`,
     ]
     const {width, height} = document.querySelector('#graph').getBoundingClientRect();
-    const borders = [];
-    let n = Math.ceil(width / 100 * 5 / 3);
-    for (let i = 0; i < n; i++) {
-        let pt = {
-            id: `b-t${i}`,
-            fx: 50 + i * 100,
-            fy: -100,
-            r: 100
-        }
-        let pt_ = {
-            id: `b-t${i}-`,
-            fx: -pt.fx,
-            fy: -100,
-            r: 100
-        }
-        let pb = {
-            id: `b-b${i}`,
-            fx: pt.fx,
-            fy: height,
-            r: 100
-        }
-        let pb_ = {
-            id: `b-b${i}-`,
-            fx: -pt.fx,
-            fy: height,
-            r: 100
-        }
-        borders.push(pt, pt_, pb, pb_)
-    }
-    let offsetR = 50 + (n - 1) * 100 * 1.5;
-    let offsetL = -offsetR / 2;
-    n = Math.ceil(height / 100) * 2;
-    for (let i = 0; i < n; i++) {
-        let pr = {
-            id: `b-r${i}`,
-            fx: offsetR,
-            // fy: -100,
-            fy: i * 100,
-            r: 100
-        }
-        let pl = {
-            id: `b-l${i}`,
-            fx: offsetL,
-            // fy: -100,
-            fy: i * 100,
-            r: 100
-        }
-        borders.push(pr, pl)
-    }
-    const nodes = [...dataMap.keys()].map((k, i, arr) => {
+    const {borders, offsetR, offsetL} = getBorders(width, height, 100)
+    const newNodes = [...dataMap.keys()].map((k, i, arr) => {
+        // default positions: rectangle = 4 * n
         const rows = 4
         const cols = Math.ceil(arr.length / rows)
         const row = Math.floor(i / cols)
@@ -140,11 +85,14 @@ const data = [
             r: id2Length(k) / 2 + 1
         }
     })
-    nodes.push(...borders)
+    newNodes.push(...borders)
+
     const colored = new Map()
-    const d3Bubbles = createD3Bubbles({
-        svgElement: graph,
+    const refresh = initSvg({
+        svg: graph,
+        initNodes: newNodes,
         clickCallback: (event, node) => {
+            // console.log(`${node.id} x=${node.x} y=${node.y}`)
             const circle = event.target.tagName === "SPAN" ? event.target.parentNode : event.target;
             if (colored.has(node.id)) {
                 if (colored.get(node.id)) {
@@ -165,74 +113,79 @@ const data = [
             const matches = dataMap.get(node.id);
             if (matches?.length) {
                 let angle = 360 * Math.PI / (180 * matches.length);
-                let distance = 20;
+                let distance = 100;
                 for (let i = 0; i < matches.length; i++) {
                     let newX = node.x + distance * Math.cos(angle * i);
                     let newY = node.y + distance * Math.sin(angle * i);
                     let newNode = {
                         id: matches[i], x: newX, y: newY, r: id2Length(matches[i]) / 2
                     }
-                    nodes.push(newNode);
+                    newNodes.push(newNode);
+                    // console.log(`\t${newNode.id} x=${newNode.x} y=${newNode.y}`)
                 }
-                d3Bubbles.update(nodes);
+                refresh(newNodes, {x: node.x, y: node.y});
             }
         }
     });
-    // initialize
-    d3Bubbles.update(nodes)
 
-    function createD3Bubbles({svgElement, clickCallback}) {
-        const svg = d3.select(svgElement);
-        const zoomer = svg.select('#zoomer');
-        let node = zoomer.append("g").selectAll('g');
+    function initSvg({svg, initNodes, clickCallback}) {
+        let gList = d3.select(svg).select('#zoomer').append("g").selectAll('g');
         const simulation = d3.forceSimulation()
             .force("x", d3.forceX(width / 2).strength(0.002))
             .force("y", d3.forceY(height / 2))
-            // .force("center",d3.forceCenter(width/2,height/2))
             .force("collide", d3.forceCollide().radius(d => d.r + 8))
             .force("charge", d3.forceManyBody().strength(30))
             .on("tick", () => {
-                node.attr('transform', d => `translate(${d.x},${d.y})`);
+                gList.attr('transform', d => `translate(${d.x},${d.y})`);
             });
-        return Object.assign(svg.node(), {
-            update(nodes) {
-                const oldNodes = new Map(node.data().map(d => [d.id, d]));
-                nodes = nodes.map(d => Object.assign({}, oldNodes.get(d.id) || d));
-                simulation.nodes(nodes);
-                simulation.alpha(0.1).alphaDecay(0.02).restart();
-                node = node
-                    .data(nodes, d => d.id)
-                    .join(enter => {
-                        return enter.append(d => {
-                            const node = document.querySelector('#graph-node-template').content.firstElementChild.querySelector('.node').cloneNode(true);
-                            const circle = node.querySelector('foreignObject');
-                            circle.style.width = id2Length(d.id);
-                            circle.style.height = id2Length(d.id);
-                            if (d.id.startsWith("b-")) {
-                                circle.style.border = "1px solid red"; // borders
-                                return node
-                            }
-                            circle.style.fontSize = "0.9rem"
-                            circle.style.borderRadius = "50%";
-                            circle.style.textAlign = "center";
-                            circle.style.lineHeight = id2Length(d.id) + "px";
-                            circle.style.border = "none";
-                            circle.style.background = "hsla(0, 0%, 30%, 0.1)";
-                            circle.style.boxShadow = "0 0 6px 0 #4d3779, inset 0 0 12px 0 #514273, inset 0 0 1px #ad8ee7";
-                            circle.style.color = "#BFC4C9";
-                            const span = node.querySelector('span');
-                            span.textContent = d.id
-                            d3.select(circle)
-                                .transition()
-                                .duration(2000000)
-                                .attr('x', d.x + 100);
+
+        function refresh(newNodes, origin) {
+            const oldNodes = new Map(gList.data().map(d => [d.id, d]));
+            newNodes = newNodes.map(d => Object.assign({}, oldNodes.get(d.id) || d));
+
+            gList = gList
+                .data(newNodes, d => d.id)
+                .join(enter => {
+                    return enter.append(d => {
+                        const node = document.querySelector('#graph-node-template').content.firstElementChild.querySelector('.node').cloneNode(true);
+                        const circle = node.querySelector('foreignObject');
+                        const diameter = id2Length(d.id);
+                        circle.style.width = diameter;
+                        circle.style.height = diameter;
+                        if (d.id.startsWith("b-")) {
+                            circle.style.border = "1px solid red"; // borders
                             return node;
-                        })
-                    })
-                    .on('click', clickCallback)
-                    .call(drag(simulation));
-            }
-        });
+                        }
+                        circle.style.fontSize = "0.9rem"
+                        circle.style.borderRadius = "50%";
+                        circle.style.textAlign = "center";
+                        circle.style.lineHeight = diameter + "px";
+                        circle.style.border = "none";
+                        circle.style.background = "hsla(0, 0%, 30%, 0.1)";
+                        circle.style.boxShadow = "0 0 6px 0 #4d3779, inset 0 0 12px 0 #514273, inset 0 0 1px #ad8ee7";
+                        circle.style.color = "#BFC4C9";
+                        node.querySelector('span').textContent = d.id;
+
+                        if (origin) {
+                            // console.log(`* ${d.id} x=${d.x} y=${d.y}`)
+                            d3.select(circle)
+                                .attr('transform', `translate(${origin.x - d.x}, ${origin.y - d.y}) scale(0)`)
+                                .transition()
+                                .duration(1200)
+                                .attr('transform', `scale(1)`);
+                        }
+                        return node;
+                    });
+                })
+                .on('click', clickCallback)
+                .call(drag(simulation));
+
+            simulation.nodes(newNodes);
+            simulation.alpha(0.1).alphaDecay(0.02).restart();
+        }
+
+        refresh(initNodes);
+        return refresh;
     }
 
     function drag(simulation) {
@@ -266,7 +219,8 @@ const data = [
     let newPoint = {x: 0, y: 0};
     let lastPoint = {x: 0, y: 0};
 
-    let xr = offsetL,xl = offsetR+offsetL-100
+    let xr = offsetL, xl = offsetR + offsetL - 100
+
     function updatePoint(e) {
         const {clientX, clientY} = e;
         const deltaX = clientX - startPoint.x;
@@ -312,4 +266,62 @@ const data = [
 
     graph.addEventListener('touchstart', handleStart);
     document.addEventListener('touchend', handleEnd);
+}
+
+function id2Length(id) {
+    if (id.startsWith("b-")) {
+        return 100
+    }
+    return id.length < 5 ? 90 : 100
+}
+
+function getBorders(width, height, diameter = 100) {
+    const borders = [], halfD = diameter / 2;
+    let n = Math.ceil(width / diameter * 5 / 3);
+    for (let i = 0; i < n; i++) {
+        let pt = {
+            id: `b-t${i}`,
+            fx: halfD + i * diameter,
+            fy: -diameter,
+            r: diameter
+        }
+        let pt_ = {
+            id: `b-t${i}-`,
+            fx: -pt.fx,
+            fy: -diameter,
+            r: diameter
+        }
+        let pb = {
+            id: `b-b${i}`,
+            fx: pt.fx,
+            fy: height,
+            r: diameter
+        }
+        let pb_ = {
+            id: `b-b${i}-`,
+            fx: -pt.fx,
+            fy: height,
+            r: diameter
+        }
+        borders.push(pt, pt_, pb, pb_)
+    }
+    let offsetR = halfD + (n - 1) * diameter * 1.5;
+    let offsetL = -offsetR / 2;
+    n = Math.ceil(height / diameter) * 2;
+    for (let i = 0; i < n; i++) {
+        let pr = {
+            id: `b-r${i}`,
+            fx: offsetR,
+            fy: i * diameter,
+            r: diameter
+        }
+        let pl = {
+            id: `b-l${i}`,
+            fx: offsetL,
+            fy: i * diameter,
+            r: diameter
+        }
+        borders.push(pr, pl)
+    }
+    return {borders, offsetR, offsetL}
 }
