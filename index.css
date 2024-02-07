@@ -60,12 +60,17 @@
 }
 #graph-phone-container {
     position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 #graph-phone-container>div:nth-child(0){
     position: absolute;
+    z-index: -1;
 }
 #graph-phone-container>div:nth-child(1){
     position: absolute;
-    margin-left: -10px;
+    margin-left: 10px;
+    z-index: 999;
 }
