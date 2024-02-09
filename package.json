@@ -1,5 +1,8 @@
 {
   "devDependencies": {
     "esbuild": "0.20.0"
+  },
+  "dependencies": {
+    "@metamask/detect-provider": "^2.0.0"
   }
 }
