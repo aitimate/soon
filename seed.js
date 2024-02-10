@@ -49,7 +49,7 @@ const formatDate = (() => {
 })();
 
 ;(async () => {
-    let currentAccount;
+    let currentAccount, wallet;
     // const rpcList = [
     //     "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
     //     "https://data-seed-prebsc-1-s2.bnbchain.org:8545",
@@ -150,7 +150,7 @@ const formatDate = (() => {
                             if (value > 0n) {
                                 try {
                                     DOM.$walletSeedBtn.style.pointerEvents = "none";
-                                    const res = await ico.purchase({value: value})
+                                    const res = await ico.connect(wallet).purchase({value: value})
                                     await res.wait(1)
                                 } catch (e) {
                                     console.log(`purchase: ${e}`)
@@ -179,7 +179,7 @@ const formatDate = (() => {
     await updateSeedInfo()
     setInterval(updateSeedInfo, 2000)
 
-    const wallet = await detectEthereumProvider();
+    wallet = await detectEthereumProvider();
     if (wallet) {
         if (wallet._state?.accounts?.length) {
             currentAccount = wallet._state.accounts[0]
