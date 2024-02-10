@@ -49,7 +49,7 @@ const formatDate = (() => {
 })();
 
 ;(async () => {
-    let currentAccount, wallet;
+    let currentAccount, signer;
     // const rpcList = [
     //     "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
     //     "https://data-seed-prebsc-1-s2.bnbchain.org:8545",
@@ -126,6 +126,7 @@ const formatDate = (() => {
         }], provider);
     const updateSeedInfo = (() => {
         let initializedMaxBtn = false;
+        let initializedClick = false;
         return async () => {
             try {
                 const info = await ico.info()
@@ -145,20 +146,23 @@ const formatDate = (() => {
                         DOM.$walletSeedBtn.querySelector("div").textContent = "Ended."
                     } else {
                         DOM.$walletSeedBtn.querySelector("div").textContent = "BUY NOW!"
-                        DOM.$walletSeedBtn.addEventListener("click", async () => {
-                            const value = parseBigint(DOM.$purchaseInput.value, 18);
-                            if (value > 0n) {
-                                try {
-                                    DOM.$walletSeedBtn.style.pointerEvents = "none";
-                                    const res = await ico.connect(wallet).purchase({value: value})
-                                    await res.wait(1)
-                                } catch (e) {
-                                    console.log(`purchase: ${e}`)
-                                } finally {
-                                    DOM.$walletSeedBtn.style.pointerEvents = "auto";
+                        if (!initializedClick){
+                            initializedClick = true
+                            DOM.$walletSeedBtn.addEventListener("click", async () => {
+                                const value = parseBigint(DOM.$purchaseInput.value, 18);
+                                if (value > 0n) {
+                                    try {
+                                        DOM.$walletSeedBtn.style.pointerEvents = "none";
+                                        const res = await ico.connect(signer).purchase({value: value})
+                                        await res.wait(1)
+                                    } catch (e) {
+                                        console.log(`purchase: ${e}`)
+                                    } finally {
+                                        DOM.$walletSeedBtn.style.pointerEvents = "auto";
+                                    }
                                 }
-                            }
-                        })
+                            })
+                        }
                     }
                 }
                 DOM.$time.textContent = `${formatDate(new Date(startTime), "Y.M.D")} - ${formatDate(new Date(deadline), "Y.M.D")}`
@@ -179,8 +183,9 @@ const formatDate = (() => {
     await updateSeedInfo()
     setInterval(updateSeedInfo, 2000)
 
-    wallet = await detectEthereumProvider();
+    const wallet = await detectEthereumProvider();
     if (wallet) {
+        signer = await (new ethers.BrowserProvider(wallet)).getSigner()
         if (wallet._state?.accounts?.length) {
             currentAccount = wallet._state.accounts[0]
             updateAccount()
